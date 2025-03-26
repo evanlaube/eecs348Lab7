@@ -3,6 +3,9 @@
 
 /* Add any function signatures you need here but do not modify the existing ones */
 
+// Prints out the category of the temperature to the user, along with a weather advisory
+void categorize_temperature(float celsius);
+
 /**
  * @brief Convert temperature in Celsius to Fahrenheit
  * 
