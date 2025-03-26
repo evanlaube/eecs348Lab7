@@ -1,5 +1,6 @@
 #include "football.h"
-#include <cstdlib>
+#include "stdio.h"
+#include "stdlib.h" 
 
 ScoreCombination createScoreCombination(int fieldGoals, int touchdowns, int conversionTds, int extraPointTds, int safeties) {
     ScoreCombination combo;
@@ -29,13 +30,9 @@ int checkCombinationEquality(ScoreCombination a, ScoreCombination b) {
     return 1;
 }
 
-ScoreCombinationSet getCombinations(int score) {
-    ScoreCombinationSet result;
-    result.combinations = malloc(result.count * sizeof(ScoreCombination));
-    result.score = score;
-    ScoreCombination base = createScoreCombination(0, 0, 0, 0, 0);
-
-    return result;
+void printCombination(ScoreCombination combo) {
+    printf("%d TD + 2pt, %d TD + FG, %d TD, %d 3pt FG, %d Safety\n", combo.conversionTds,
+            combo.extraPointTds, combo.touchdowns, combo.fieldGoals, combo.safeties);
 }
 
 void findCombinations(int remainingScore, ScoreCombination current, ScoreCombinationSet* result) {
@@ -87,12 +84,51 @@ void findCombinations(int remainingScore, ScoreCombination current, ScoreCombina
     }
 }
 
+// Pointer to array of scoreCombinationSets to stash previous results for efficiency
+ScoreCombinationSet *setStash;
+// Number of combinationSets in the stash;
+int stashCount = 0;
+
+ScoreCombinationSet getCombinations(int score) {
+    // Check if the set is in the stash
+    for(int i = 0; i < stashCount; i++) {
+        if(setStash[i].score == score) {
+            return setStash[i];
+        }
+    }
+
+    ScoreCombinationSet result;
+    result.combinations = malloc(result.count * sizeof(ScoreCombination));
+    result.score = score;
+    result.count = 0;
+    ScoreCombination base = createScoreCombination(0, 0, 0, 0, 0);
+
+    findCombinations(score, base, &result);
+
+    // Add the result to the stash
+    if(stashCount == 0) {
+        setStash = malloc(sizeof(ScoreCombinationSet));
+        setStash[0] = result;
+        stashCount++;
+    } else {
+        setStash = realloc(setStash, (stashCount+1) * sizeof(ScoreCombinationSet));
+        setStash[stashCount] = result;
+        stashCount++;
+    }
+
+    return result;
+}
+
 int count_combinations(int points) {
-    return 0;
+    return getCombinations(points).count;
 }
 
 void print_combinations(int points) {
+    ScoreCombinationSet set = getCombinations(points);
 
+    for(int i = 0; i < set.count; i++) {
+        printCombination(set.combinations[i]);
+    }
 }
 
 

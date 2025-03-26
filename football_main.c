@@ -7,7 +7,11 @@ int main(int argc, char *argv[]) {
     do {
         printf("Enter the NFL score: ");
         scanf("%d", &score);
-        printf("Score: %d", score);
+
+        ScoreCombinationSet combo = getCombinations(score); 
+        printf("Number of possible combinations for score of %d: %d\n", score, combo.count);
+        printf("Possible combinations: \n");
+        print_combinations(score);
 
     } while (score != 1 && score != 0);
 
