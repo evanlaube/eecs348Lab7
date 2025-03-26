@@ -35,12 +35,12 @@ void printCombination(ScoreCombination combo) {
             combo.extraPointTds, combo.touchdowns, combo.fieldGoals, combo.safeties);
 }
 
-void findCombinations(int remainingScore, ScoreCombination current, ScoreCombinationSet* result) {
-    if(remainingScore == 0) {
+// Adds a score combination to a set if it is not a duplicate
+void addCombinationToResult(ScoreCombination combo, ScoreCombinationSet* result) {
         // Check all already saved combinations to make sure found combo is not duplicate
         for(int i = 0; i < result->count; i++) {
             // If the combo is a duplicate, return and do not add it again
-            if(checkCombinationEquality(current, result->combinations[i])) {
+            if(checkCombinationEquality(combo, result->combinations[i])) {
                 return;
             }
         }
@@ -48,46 +48,96 @@ void findCombinations(int remainingScore, ScoreCombination current, ScoreCombina
         // Reallocate the combinations array in the struct to make space for an additional
         result->combinations = realloc(result->combinations, (result->count+1) * sizeof(ScoreCombination));
         // Set the element at the end of the array to the current combo
-        result->combinations[result->count] = current;
+        result->combinations[result->count] = combo;
         // Increment the count of the set
         result->count++;
-    }
+}
 
-    if(remainingScore >= 2) {
-        ScoreCombination new = current;
-        new.safeties++;
-        findCombinations(remainingScore-2, new, result);
-    }
-
-    if(remainingScore >= 3) {
-        ScoreCombination new = current;
-        new.fieldGoals++;
-        findCombinations(remainingScore-3, new, result);
-    }
-
-    if(remainingScore >= 6) {
-        ScoreCombination new = current;
-        new.touchdowns++;
-        findCombinations(remainingScore-6, new, result);
-    }
-
-    if(remainingScore >= 7) {
-        ScoreCombination new = current;
-        new.extraPointTds++;
-        findCombinations(remainingScore-7, new, result);
-    }
-
-    if(remainingScore >= 8) {
-        ScoreCombination new = current;
-        new.conversionTds++;
-        findCombinations(remainingScore-8, new, result);
-    }
+ScoreCombination combineCombinations(ScoreCombination base, ScoreCombination offset) {
+    ScoreCombination combined;
+    combined.fieldGoals = base.fieldGoals + offset.fieldGoals;
+    combined.touchdowns = base.touchdowns + offset.touchdowns;
+    combined.conversionTds = base.conversionTds + offset.conversionTds;
+    combined.extraPointTds = base.extraPointTds + offset.extraPointTds;
+    combined.safeties = base.safeties + offset.safeties;
+    return combined;
 }
 
 // Pointer to array of scoreCombinationSets to stash previous results for efficiency
 ScoreCombinationSet *setStash;
 // Number of combinationSets in the stash;
 int stashCount = 0;
+
+void findCombinations(int remainingScore, ScoreCombination current, ScoreCombinationSet* result) {
+    if(remainingScore == 0) {
+        addCombinationToResult(current, result);
+        return;
+    }
+
+    // Check stash to see if combo with remainingScore is already calculated
+    for(int i = 0; i < stashCount; i++) {
+        if(setStash[i].score == remainingScore) {
+            for (int j = 0; j < setStash[i].count; j++) {
+                ScoreCombination newComb = combineCombinations(current, setStash[i].combinations[j]);
+                addCombinationToResult(newComb, result);
+            }
+            return;
+        }
+    }
+
+    ScoreCombinationSet temp;
+    temp.score = remainingScore;
+    temp.count = 0;
+    temp.combinations = NULL;
+    ScoreCombination base = createScoreCombination(0, 0, 0, 0, 0);
+
+    if(remainingScore >= 2) {
+        ScoreCombination new = base;
+        new.safeties++;
+        findCombinations(remainingScore-2, new, &temp);
+    }
+
+    if(remainingScore >= 3) {
+        ScoreCombination new = base;
+        new.fieldGoals++;
+        findCombinations(remainingScore-3, new, &temp);
+    }
+
+    if(remainingScore >= 6) {
+        ScoreCombination new = base;
+        new.touchdowns++;
+        findCombinations(remainingScore-6, new, &temp);
+    }
+
+    if(remainingScore >= 7) {
+        ScoreCombination new = base;
+        new.extraPointTds++;
+        findCombinations(remainingScore-7, new, &temp);
+    }
+
+    if(remainingScore >= 8) {
+        ScoreCombination new = base;
+        new.conversionTds++;
+        findCombinations(remainingScore-8, new, &temp);
+    }
+
+    // Add the result to the stash
+    if(stashCount == 0) {
+        setStash = malloc(sizeof(ScoreCombinationSet));
+        setStash[0] = temp;
+        stashCount++;
+    } else {
+        setStash = realloc(setStash, (stashCount+1) * sizeof(ScoreCombinationSet));
+        setStash[stashCount] = temp;
+        stashCount++;
+    }
+
+    // Combine computed temp result with current combo
+    for(int i = 0; i < temp.count; i++) {
+        ScoreCombination new = combineCombinations(current, temp.combinations[i]);
+        addCombinationToResult(new, result);
+    }
+}
 
 ScoreCombinationSet getCombinations(int score) {
     // Check if the set is in the stash
@@ -98,23 +148,13 @@ ScoreCombinationSet getCombinations(int score) {
     }
 
     ScoreCombinationSet result;
-    result.combinations = malloc(result.count * sizeof(ScoreCombination));
     result.score = score;
     result.count = 0;
+    result.combinations = malloc(result.count * sizeof(ScoreCombination));
     ScoreCombination base = createScoreCombination(0, 0, 0, 0, 0);
 
     findCombinations(score, base, &result);
 
-    // Add the result to the stash
-    if(stashCount == 0) {
-        setStash = malloc(sizeof(ScoreCombinationSet));
-        setStash[0] = result;
-        stashCount++;
-    } else {
-        setStash = realloc(setStash, (stashCount+1) * sizeof(ScoreCombinationSet));
-        setStash[stashCount] = result;
-        stashCount++;
-    }
 
     return result;
 }
