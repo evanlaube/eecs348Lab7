@@ -25,8 +25,10 @@ typedef struct {
     ScoreCombination* combinations;
 } ScoreCombinationSet;
 
-ScoreCombination createScoreCombinations(int fieldGoals, int touchdowns, 
+ScoreCombination createScoreCombination(int fieldGoals, int touchdowns, 
         int conversionTds, int extraPointTds, int safeties);
+
+ScoreCombinationSet getCombinations(int score);
 
 /* Do not modify the function signatures here */
 
